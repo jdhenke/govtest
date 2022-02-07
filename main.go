@@ -17,6 +17,7 @@ func main() {
 		if err := approve(r.URL.Query()); err != nil {
 			log.Println(err)
 			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
 		}
 		http.Error(rw, http.StatusText(http.StatusOK), http.StatusOK)
 	})); err != nil {
