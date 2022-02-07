@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -10,20 +14,46 @@ func main() {
 	log.SetFlags(log.Lshortfile)
 	log.Println("Starting up.")
 	if err := http.ListenAndServe(":"+os.Getenv("PORT"), http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		actor := r.URL.Query().Get("actor")
-		if actor == "" {
-			http.Error(rw, "actor required", http.StatusBadRequest)
-			return
+		if err := approve(r.URL.Query()); err != nil {
+			log.Println(err)
+			http.Error(rw, err.Error(), http.StatusBadRequest)
 		}
-		refname := r.URL.Query().Get("refname")
-		if refname == "" {
-			http.Error(rw, "refname required", http.StatusBadRequest)
-			return
-		}
-		log.Printf("%v initiated check for %v", actor, refname)
 		http.Error(rw, http.StatusText(http.StatusOK), http.StatusOK)
 	})); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Shutdown complete.")
+}
+
+func approve(q url.Values) error {
+	actor := q.Get("actor")
+	if actor == "" {
+		return fmt.Errorf("no actor provided")
+	}
+	refname := q.Get("refname")
+	if refname == "" {
+		return fmt.Errorf("no refname provided")
+	}
+	sha := q.Get("SHA")
+	if sha == "" {
+		return fmt.Errorf("no sha provided")
+	}
+	resp, err := http.Get(fmt.Sprintf("https://github.com/jdhenke/govtest/commit/%s.diff", sha))
+	if err != nil {
+		return fmt.Errorf("getting sha diff %s: %v", sha, err)
+	}
+	defer func() {
+		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
+	n, err := io.Copy(ioutil.Discard, resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading sha diff %s: %v", sha, err)
+	}
+	const max = 1024
+	if n > max {
+		return fmt.Errorf("diff larger than max: %v > %v", n, max)
+	}
+	log.Printf("%s %s by %s approved.", sha, refname, actor)
+	return nil
 }
