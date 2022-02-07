@@ -16,7 +16,7 @@ func TestSite(t *testing.T) {
 	q := url.Values{}
 	q.Set("actor", os.Getenv("GITHUB_ACTOR"))
 	q.Set("refname", os.Getenv("GITHUB_REF_NAME"))
-	q.Set("sha", os.Getenv("GITHUB_SHA"))
+	q.Set("SHA", os.Getenv("GITHUB_SHA"))
 	u, err := url.Parse("https://infinite-waters-17773.herokuapp.com?" + q.Encode())
 	require.NoError(t, err)
 	fmt.Println(u.String())
