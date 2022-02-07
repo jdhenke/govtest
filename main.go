@@ -34,7 +34,7 @@ func approve(q url.Values) error {
 	if refname == "" {
 		return fmt.Errorf("no refname provided")
 	}
-	sha := q.Get("SHA")
+	sha := q.Get("sha")
 	if sha == "" {
 		return fmt.Errorf("no sha provided")
 	}
